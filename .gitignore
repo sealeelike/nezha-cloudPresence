@@ -2,3 +2,4 @@ node_modules/
 dist/
 *.exe
 *.db
+!dashboard/pkg/geoip/geoip.db

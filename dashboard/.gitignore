@@ -23,4 +23,4 @@
 /config.yml
 /resource/template/theme-custom
 /resource/static/custom
-/cmd/dashboard/docs
+# /cmd/dashboard/docs
