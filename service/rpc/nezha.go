@@ -82,6 +82,12 @@ func (s *NezhaHandler) RequestTask(stream pb.NezhaService_RequestTaskServer) err
 				}
 				server.ConfigCache <- result.Data
 			}
+		case model.TaskTypeTraceroute:
+			singleton.TracerouteSentinelShared.HandleResult(result, clientID)
+			singleton.ServiceSentinelShared.Dispatch(singleton.ReportData{
+				Data:     result,
+				Reporter: clientID,
+			})
 		default:
 			if model.IsServiceSentinelNeeded(result.GetType()) {
 				singleton.ServiceSentinelShared.Dispatch(singleton.ReportData{

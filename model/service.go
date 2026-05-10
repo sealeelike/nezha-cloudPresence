@@ -26,6 +26,7 @@ const (
 	TaskTypeFM
 	TaskTypeReportConfig
 	TaskTypeApplyConfig
+	TaskTypeTraceroute
 )
 
 type TerminalTask struct {
@@ -53,7 +54,8 @@ type Service struct {
 	Target              string `json:"target"`
 	SkipServersRaw      string `json:"-"`
 	Duration            uint64 `json:"duration"`
-	DisplayIndex        int    `json:"display_index"` // 展示排序，越大越靠前
+	CronRule            string `json:"cron_rule,omitempty"` // 可选 cron 表达式，优先于 Duration
+	DisplayIndex        int    `json:"display_index"`      // 展示排序，越大越靠前
 	Notify              bool   `json:"notify,omitempty"`
 	NotificationGroupID uint64 `json:"notification_group_id"` // 当前服务监控所属的通知组 ID
 	Cover               uint8  `json:"cover"`
@@ -84,6 +86,9 @@ func (m *Service) PB() *pb.Task {
 
 // CronSpec 返回服务监控请求间隔对应的 cron 表达式
 func (m *Service) CronSpec() string {
+	if m.CronRule != "" {
+		return m.CronRule
+	}
 	if m.Duration == 0 {
 		// 默认间隔 30 秒
 		m.Duration = 30

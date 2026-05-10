@@ -34,6 +34,7 @@ var (
 	NotificationShared    *NotificationClass
 	NATShared             *NATClass
 	CronShared            *CronClass
+	TracerouteSentinelShared *TracerouteSentinel
 )
 
 //go:embed frontend-templates.yaml
@@ -61,6 +62,17 @@ func LoadSingleton(bus chan<- *model.Service) (err error) {
 	CronShared = NewCronClass()
 	// 最后初始化 ServiceSentinel
 	ServiceSentinelShared, err = NewServiceSentinel(bus)
+	if err != nil {
+		return
+	}
+	// 初始化 TracerouteSentinel
+	TracerouteSentinelShared = NewTracerouteSentinel(DB, CronShared.Cron, func(id uint64) (TaskStreamSender, bool) {
+		s, ok := ServerShared.Get(id)
+		if !ok || s == nil || s.TaskStream == nil {
+			return nil, false
+		}
+		return s.TaskStream, true
+	})
 	return
 }
 
@@ -89,7 +101,8 @@ func InitDBFromPath(path string) error {
 		model.Notification{}, model.AlertRule{}, model.Service{}, model.NotificationGroupNotification{},
 		model.Cron{}, model.Transfer{}, model.ServerGroupServer{},
 		model.NAT{}, model.DDNSProfile{}, model.NotificationGroupNotification{},
-		model.WAF{}, model.Oauth2Bind{})
+		model.WAF{}, model.Oauth2Bind{},
+		model.TracerouteTask{}, model.TracerouteResult{}, model.TracerouteHop{}, model.GeoLocation{})
 	if err != nil {
 		return err
 	}

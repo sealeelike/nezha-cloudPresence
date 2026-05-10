@@ -420,6 +420,7 @@ func createService(c *gin.Context) (uint64, error) {
 	m.Notify = mf.Notify
 	m.NotificationGroupID = mf.NotificationGroupID
 	m.Duration = mf.Duration
+	m.CronRule = mf.CronRule
 	m.LatencyNotify = mf.LatencyNotify
 	m.MinLatency = mf.MinLatency
 	m.MaxLatency = mf.MaxLatency
@@ -484,6 +485,7 @@ func updateService(c *gin.Context) (any, error) {
 	m.Notify = mf.Notify
 	m.NotificationGroupID = mf.NotificationGroupID
 	m.Duration = mf.Duration
+	m.CronRule = mf.CronRule
 	m.LatencyNotify = mf.LatencyNotify
 	m.MinLatency = mf.MinLatency
 	m.MaxLatency = mf.MaxLatency
@@ -530,6 +532,22 @@ func batchDeleteService(c *gin.Context) (any, error) {
 	}
 
 	err := singleton.DB.Transaction(func(tx *gorm.DB) error {
+		// 级联删除 traceroute 数据（type=14 的 service）
+		var services []model.Service
+		tx.Where("id in (?) AND type = ?", ids, model.TaskTypeTraceroute).Find(&services)
+		if len(services) > 0 {
+			var svcIDs []uint64
+			for _, s := range services {
+				svcIDs = append(svcIDs, s.ID)
+			}
+			// 删除 hops（通过 result_id）
+			var resultIDs []uint64
+			tx.Model(&model.TracerouteResult{}).Where("task_id IN ?", svcIDs).Pluck("id", &resultIDs)
+			if len(resultIDs) > 0 {
+				tx.Where("result_id IN ?", resultIDs).Delete(&model.TracerouteHop{})
+			}
+			tx.Where("task_id IN ?", svcIDs).Delete(&model.TracerouteResult{})
+		}
 		return tx.Unscoped().Delete(&model.Service{}, "id in (?)", ids).Error
 	})
 	if err != nil {

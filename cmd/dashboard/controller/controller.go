@@ -154,6 +154,11 @@ func routers(r *gin.Engine, frontendDist fs.FS) {
 	auth.PATCH("/setting", adminHandler(updateConfig))
 	auth.POST("/maintenance", adminHandler(runMaintenance))
 
+	RegisterTracerouteRoutes(auth, singleton.DB, singleton.TracerouteSentinelShared)
+
+	// Traceroute map 遵循 optionalAuth（ForceAuth 控制是否需要登录）
+	optionalAuth.GET("/traceroute/map", getTracerouteMap(singleton.DB))
+
 	r.NoRoute(fallbackToFrontend(frontendDist))
 }
 
